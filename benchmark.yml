@@ -1,0 +1,13 @@
+base: "http://localhost:3333"
+iterations: 1024
+concurrency: 64
+rampup: 16
+
+plan:
+  - name: create trip
+    request:
+      url: "/trips"
+      method: POST
+      body: '{ "destination": "Rio de Janeiro", "startsAt": "2024-11-20T18:00:00", "endsAt": "2024-12-10T20:00:00", "ownerName": "Jon", "ownerEmail": "jon@doe.com", "emailsToInvite": ["joana@doe.com", "mari@email.com"] }'
+      headers:
+        Content-Type: 'application/json'
