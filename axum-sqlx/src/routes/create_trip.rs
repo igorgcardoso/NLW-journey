@@ -67,10 +67,10 @@ pub async fn create_trip(
     match query!(
         r#"
         INSERT INTO trips (id, destination, starts_at, ends_at)
-        VALUES ($1, $2, $3, $4);
+        VALUES (?, ?, ?, ?);
 
         INSERT INTO participants (id, name, email, is_confirmed, is_owner, trip_id)
-        VALUES ($5, $6, $7, true, true, $8);
+        VALUES (?, ?, ?, true, true, ?);
         "#,
         id_str,
         body.destination,
@@ -98,7 +98,7 @@ pub async fn create_trip(
         query!(
             r#"
             INSERT INTO participants (id, email, trip_id)
-            VALUES ($1, $2, $3);
+            VALUES (?, ?, ?);
             "#,
             participant_id_str,
             email,

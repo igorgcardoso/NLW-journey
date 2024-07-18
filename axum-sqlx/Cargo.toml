@@ -3,9 +3,6 @@ name = "axum-sqlx"
 version = "0.1.0"
 edition = "2021"
 
-[profile.dev]
-opt-level = 1
-
 [profile.dev.package."*"]
 opt-level = 3 # Improves performance when developing, but slows down first compilation significantly
 debug = false # Disabled debug symbols for dependencies
@@ -34,7 +31,7 @@ sqlx = { version = "0.7.4", features = [
     "chrono",
 ] }
 thiserror = "1.0.62"
-tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
+tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["cors", "trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"

@@ -43,6 +43,18 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/trips", post(routes::create_trip))
         .route("/trips/:trip_id/confirm", get(routes::confirm_trip))
+        .route(
+            "/participants/:participant_id/confirm",
+            get(routes::confirm_participant),
+        )
+        .route(
+            "/trips/:trip_id/activities",
+            post(routes::create_activity).get(routes::get_activities),
+        )
+        .route(
+            "/trips/:trip_id/links",
+            post(routes::create_link).get(routes::get_links),
+        )
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state);
