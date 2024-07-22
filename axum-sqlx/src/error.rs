@@ -17,12 +17,14 @@ pub enum AppError {
     #[error("{0}")]
     BadRequest(String),
     #[error("{0}")]
+    UnprocessableEntity(String),
+    #[error("{0}")]
     InternalServerError(String),
 }
 
 impl From<validator::ValidationErrors> for AppError {
     fn from(err: validator::ValidationErrors) -> Self {
-        AppError::InternalServerError(err.to_string())
+        AppError::UnprocessableEntity(err.to_string())
     }
 }
 
@@ -49,6 +51,12 @@ impl IntoResponse for AppError {
         match self {
             AppError::BadRequest(_) => (
                 StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    message: self.to_string(),
+                }),
+            ),
+            AppError::UnprocessableEntity(_) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
                 Json(ErrorResponse {
                     message: self.to_string(),
                 }),

@@ -51,7 +51,10 @@ pub async fn confirm_participant(
 
     let participant = participant.unwrap();
 
-    let redirect_url = format!("http://localhost:3000/trips/{}", participant.trip_id);
+    let redirect_url = format!(
+        "{}/trips/{}",
+        state.config.web_base_url, participant.trip_id
+    );
 
     if participant.is_confirmed {
         return Ok(Redirect::to(&redirect_url));

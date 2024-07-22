@@ -10,8 +10,3 @@ pub fn get_mail_client() -> Result<AsyncSmtpTransport<Tokio1Executor>> {
 
     Ok(mailer)
 }
-
-#[cfg(not(debug_assertions))]
-pub fn get_mail_client() -> Result<AsyncSmtpTransport<Tokio1Executor>> {
-    unimplemented!()
-}

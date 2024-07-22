@@ -142,7 +142,7 @@ pub async fn create_trip(
                   <p></p>
                   <p>Caso você não saiba do que se trata esse e-mail, apenas ignore esse e-mail.</p>
                 </div>
-            "#, body.destination.clone(), formatted_starts_date, formatted_ends_date, format!("http://localhost:3333/trips/{id_str}/confirm")).trim().to_string(),
+            "#, body.destination.clone(), formatted_starts_date, formatted_ends_date, format!("{}/trips/{id_str}/confirm", state.config.api_base_url)).trim().to_string(),
         )))?;
     let mailer = get_mail_client().unwrap();
     mailer.send(mail).await?;
