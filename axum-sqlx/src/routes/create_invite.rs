@@ -1,15 +1,12 @@
 use super::confirm_trip::Trip;
-use crate::{error::AppError, libs::mail::get_mail_client, AppState};
+use crate::{error::AppError, tasks, AppState};
 use axum::{
     debug_handler,
     extract::{Path, State},
     Json,
 };
 use chrono::prelude::*;
-use lettre::{
-    message::{Mailbox, MultiPart, SinglePart},
-    AsyncTransport,
-};
+use lettre::message::{Mailbox, MultiPart, SinglePart};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use uuid::Uuid;
@@ -80,7 +77,6 @@ pub async fn create_invite(
         .and_utc()
         .format_localized("%d de %B, %Y", Locale::pt_BR);
 
-    let mailer = get_mail_client().unwrap();
     let mail = lettre::Message::builder()
             .from(Mailbox::new(
                 Some("Equipe Plann.er".to_string()),
@@ -106,7 +102,9 @@ pub async fn create_invite(
                     </div>
                 "#, &trip.destination, formatted_starts_date, formatted_ends_date, format!("{}/participants/{}", state.config.api_base_url, &participant_id)).trim().to_string(),
             ))).unwrap();
-    mailer.send(mail).await.unwrap();
+    state
+        .tasks_sender
+        .send(Box::new(tasks::SendMailTask::new(mail)))?;
 
     Ok(Json(ResponseBody { participant_id }))
 }

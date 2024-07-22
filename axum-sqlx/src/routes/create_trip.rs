@@ -1,15 +1,12 @@
 use axum::{debug_handler, extract::State, Json};
 use chrono::prelude::*;
-use lettre::{
-    message::{Mailbox, MultiPart, SinglePart},
-    AsyncTransport,
-};
+use lettre::message::{Mailbox, MultiPart, SinglePart};
 use serde::{Deserialize, Serialize};
 use sqlx::query;
 use uuid::Uuid;
 use validator::{Validate, ValidateEmail, ValidationError};
 
-use crate::{error::AppError, libs::mail::get_mail_client, AppState};
+use crate::{error::AppError, tasks, AppState};
 
 #[derive(Deserialize, Validate, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -144,8 +141,10 @@ pub async fn create_trip(
                 </div>
             "#, body.destination.clone(), formatted_starts_date, formatted_ends_date, format!("{}/trips/{id_str}/confirm", state.config.api_base_url)).trim().to_string(),
         )))?;
-    let mailer = get_mail_client().unwrap();
-    mailer.send(mail).await?;
+
+    state
+        .tasks_sender
+        .send(Box::new(tasks::SendMailTask::new(mail)))?;
 
     Ok(Json(ResponseBody { trip_id }))
 }

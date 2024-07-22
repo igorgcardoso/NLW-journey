@@ -4,15 +4,12 @@ use axum::{
     response::Redirect,
 };
 use chrono::prelude::*;
-use lettre::{
-    message::{Mailbox, MultiPart, SinglePart},
-    AsyncTransport,
-};
+use lettre::message::{Mailbox, MultiPart, SinglePart};
 use serde::Serialize;
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::{error::AppError, libs::mail::get_mail_client, AppState};
+use crate::{error::AppError, tasks, AppState};
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -103,10 +100,7 @@ pub async fn confirm_trip(
         .and_utc()
         .format_localized("%d de %B, %Y", Locale::pt_BR);
 
-    let mut set = tokio::task::JoinSet::new();
-
     participants.iter().for_each(|participant| {
-        let mailer = get_mail_client().unwrap();
         let mail = lettre::Message::builder()
             .from(Mailbox::new(
                 Some("Equipe Plann.er".to_string()),
@@ -132,12 +126,8 @@ pub async fn confirm_trip(
                     </div>
                 "#, &trip.destination, formatted_starts_date, formatted_ends_date, format!("{}/participants/{}", state.config.api_base_url, participant.id)).trim().to_string(),
             ))).unwrap();
-        set.spawn(async move {
-            mailer.send(mail).await.unwrap();
-        });
+        state.tasks_sender.send(Box::new(tasks::SendMailTask::new(mail))).unwrap();
     });
-
-    while let Some(_) = set.join_next().await {}
 
     Ok(Redirect::to(&redirect_url))
 }

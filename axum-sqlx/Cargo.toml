@@ -12,6 +12,7 @@ debug = false # Disabled debug symbols for dependencies
 anyhow = "1.0.86"
 axum = { version = "0.7.5", features = ["http2", "macros", "query"] }
 chrono = { version = "0.4.38", features = ["serde", "now", "unstable-locales"] }
+crossbeam = "0.8.4"
 dotenvy = "0.15.7"
 lettre = { version = "0.11.7", default-features = false, features = [
     "serde",

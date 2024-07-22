@@ -46,6 +46,12 @@ impl From<lettre::error::Error> for AppError {
     }
 }
 
+impl<T> From<crossbeam::channel::SendError<T>> for AppError {
+    fn from(err: crossbeam::channel::SendError<T>) -> Self {
+        AppError::InternalServerError(err.to_string())
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {

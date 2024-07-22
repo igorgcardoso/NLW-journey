@@ -3,8 +3,9 @@ use axum::{
     Router,
 };
 use config::Config;
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use sqlx::{migrate::Migrator, sqlite::SqlitePool};
-
+use tasks::Task;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
 
@@ -12,6 +13,7 @@ mod config;
 mod error;
 mod libs;
 mod routes;
+mod tasks;
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
@@ -19,6 +21,7 @@ static MIGRATOR: Migrator = sqlx::migrate!();
 pub struct AppState {
     pool: Box<SqlitePool>,
     config: Config,
+    tasks_sender: Sender<Box<dyn Task + Send>>,
 }
 
 #[tokio::main]
@@ -40,9 +43,12 @@ async fn main() -> anyhow::Result<()> {
 
     let port = config.port;
 
+    let (sender, receiver) = unbounded::<Box<dyn Task + Send>>();
+
     let state = AppState {
         pool: Box::new(pool),
         config,
+        tasks_sender: sender.clone(),
     };
 
     let app = Router::new()
@@ -77,10 +83,24 @@ async fn main() -> anyhow::Result<()> {
         .layer(CorsLayer::permissive())
         .with_state(state);
 
+    let tasks = tokio::spawn(async move { task_executor(receiver).await });
+
     let addrs = format!("0.0.0.0:{port}");
     let listener = tokio::net::TcpListener::bind(&addrs).await?;
     info!("Listening on: {}", addrs);
     axum::serve(listener, app.into_make_service()).await?;
+
+    drop(sender);
+
+    tasks.await??;
+
+    Ok(())
+}
+
+async fn task_executor(receiver: Receiver<Box<dyn Task + Send>>) -> anyhow::Result<()> {
+    while let Ok(task) = receiver.recv() {
+        task.execute().await?;
+    }
 
     Ok(())
 }
