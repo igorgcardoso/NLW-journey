@@ -4,7 +4,10 @@ use axum::{
 };
 use config::Config;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use sqlx::{migrate::Migrator, sqlite::SqlitePool};
+use sqlx::{
+    migrate::{MigrateDatabase, Migrator},
+    sqlite::SqlitePool,
+};
 use tasks::Task;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
@@ -36,6 +39,10 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let config = Config::new();
+
+    if !sqlx::Sqlite::database_exists(&config.database_url).await? {
+        sqlx::Sqlite::create_database(&config.database_url).await?;
+    }
 
     let pool = SqlitePool::connect(&config.database_url).await?;
 
