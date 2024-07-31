@@ -53,30 +53,35 @@ pub async fn create_trip(
         return Err(AppError::BadRequest("Invalid trip end date".to_string()));
     }
 
-    let trip_id = Uuid::new_v4();
-    let id_str = trip_id.to_string();
+    // let trip_id = Uuid::new_v4();
+    // let id_str = trip_id.to_string();
 
-    let participant_id = Uuid::new_v4();
-    let participant_id_str = participant_id.to_string();
+    // let participant_id = Uuid::new_v4();
+    // let participant_id_str = participant_id.to_string();
 
     let mut tx = state.pool.begin().await?;
 
-    match query!(
+    let trip = query!(
         r#"
-        INSERT INTO trips (id, destination, starts_at, ends_at)
-        VALUES (?, ?, ?, ?);
-
-        INSERT INTO participants (id, name, email, is_confirmed, is_owner, trip_id)
-        VALUES (?, ?, ?, true, true, ?);
+        INSERT INTO trips (destination, starts_at, ends_at)
+        VALUES ($1, $2, $3)
+        RETURNING id;
         "#,
-        id_str,
         body.destination,
         body.starts_at,
         body.ends_at,
-        participant_id_str,
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    match query!(
+        r#"
+        INSERT INTO participants (name, email, is_confirmed, is_owner, trip_id)
+        VALUES ($1, $2, true, true, $3);
+        "#,
         body.owner_name,
         body.owner_email,
-        id_str
+        trip.id
     )
     .execute(&mut *tx)
     .await
@@ -89,20 +94,23 @@ pub async fn create_trip(
     }
 
     for email in body.emails_to_invite.iter() {
-        let participant_id = Uuid::new_v4();
-        let participant_id_str = participant_id.to_string();
-
-        query!(
+        match query!(
             r#"
-            INSERT INTO participants (id, email, trip_id)
-            VALUES (?, ?, ?);
+            INSERT INTO participants (email, trip_id)
+            VALUES ($1, $2);
             "#,
-            participant_id_str,
             email,
-            id_str
+            trip.id
         )
         .execute(&mut *tx)
-        .await?;
+        .await
+        {
+            Ok(_) => (),
+            Err(err) => {
+                tx.rollback().await?;
+                return Err(AppError::InternalServerError(err.to_string()));
+            }
+        }
     }
 
     tx.commit().await?;
@@ -139,12 +147,12 @@ pub async fn create_trip(
                   <p></p>
                   <p>Caso você não saiba do que se trata esse e-mail, apenas ignore esse e-mail.</p>
                 </div>
-            "#, body.destination.clone(), formatted_starts_date, formatted_ends_date, format!("{}/trips/{id_str}/confirm", state.config.api_base_url)).trim().to_string(),
+            "#, body.destination.clone(), formatted_starts_date, formatted_ends_date, format!("{}/trips/{}/confirm", trip.id,  state.config.api_base_url)).trim().to_string(),
         )))?;
 
     state
         .tasks_sender
         .send(Box::new(tasks::SendMailTask::new(mail)))?;
 
-    Ok(Json(ResponseBody { trip_id }))
+    Ok(Json(ResponseBody { trip_id: trip.id }))
 }

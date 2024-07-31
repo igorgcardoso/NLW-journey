@@ -42,18 +42,18 @@ pub async fn confirm_trip(
     state: State<AppState>,
     trip_id: Path<Uuid>,
 ) -> Result<Redirect, AppError> {
-    let trip_id = trip_id.to_string();
+    // let trip_id = trip_id.to_string();
 
-    let redirect_url = format!("{}/trips/{}", state.config.web_base_url, trip_id);
+    let redirect_url = format!("{}/trips/{}", state.config.web_base_url, *trip_id);
 
     let trip = query_as!(
         Trip,
         r#"
         SELECT id, destination, starts_at, ends_at, is_confirmed, created_at
         FROM trips
-        WHERE id = ?;
+        WHERE id = $1;
         "#,
-        trip_id
+        *trip_id
     )
     .fetch_optional(&*state.pool)
     .await?;
@@ -67,9 +67,9 @@ pub async fn confirm_trip(
         r#"
         SELECT id, name, email, is_confirmed, is_owner, trip_id
         FROM participants
-        WHERE trip_id = ? AND is_owner = false;
+        WHERE trip_id = $1 AND is_owner = false;
         "#,
-        trip_id
+        *trip_id
     )
     .fetch_all(&*state.pool)
     .await?;
@@ -84,9 +84,9 @@ pub async fn confirm_trip(
         r#"
         UPDATE trips
         SET is_confirmed = true
-        WHERE id = ?;
+        WHERE id = $1;
         "#,
-        trip_id
+        *trip_id
     )
     .execute(&*state.pool)
     .await?;

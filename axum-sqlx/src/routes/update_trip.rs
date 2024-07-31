@@ -34,16 +34,16 @@ pub async fn update_trip(
 ) -> Result<Json<ResponseBody>, AppError> {
     body.validate()?;
 
-    let trip_id_str = trip_id.to_string();
+    // let trip_id_str = trip_id.to_string();
 
     let trip = query_as!(
         Trip,
         r#"
         SELECT id, destination, starts_at, ends_at, is_confirmed, created_at
         FROM trips
-        WHERE id = ?
+        WHERE id = $1
         "#,
-        trip_id_str,
+        *trip_id,
     )
     .fetch_optional(&*state.pool)
     .await?;
@@ -63,13 +63,13 @@ pub async fn update_trip(
     query!(
         r#"
         UPDATE trips
-        SET destination = ?, starts_at = ?, ends_at = ?
-        WHERE id = ?
+        SET destination = $1, starts_at = $2, ends_at = $3
+        WHERE id = $4;
         "#,
         body.destination,
         body.starts_at,
         body.ends_at,
-        trip_id_str,
+        *trip_id,
     )
     .execute(&*state.pool)
     .await?;

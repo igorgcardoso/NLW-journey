@@ -9,6 +9,7 @@ mod get_links;
 mod get_participant;
 mod get_participants;
 mod get_trip_details;
+mod ready;
 mod update_trip;
 
 pub use self::{
@@ -16,5 +17,5 @@ pub use self::{
     create_activity::create_activity, create_invite::create_invite, create_link::create_link,
     create_trip::create_trip, get_activities::get_activities, get_links::get_links,
     get_participant::get_participant, get_participants::get_participants,
-    get_trip_details::get_trip_details, update_trip::update_trip,
+    get_trip_details::get_trip_details, ready::ready, update_trip::update_trip,
 };

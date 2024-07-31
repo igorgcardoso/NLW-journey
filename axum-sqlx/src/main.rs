@@ -6,7 +6,8 @@ use config::Config;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use sqlx::{
     migrate::{MigrateDatabase, Migrator},
-    sqlite::SqlitePool,
+    // sqlite::SqlitePool,
+    postgres::PgPool,
 };
 use tasks::Task;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -22,7 +23,7 @@ static MIGRATOR: Migrator = sqlx::migrate!();
 
 #[derive(Clone)]
 pub struct AppState {
-    pool: Box<SqlitePool>,
+    pool: Box<PgPool>,
     config: Config,
     tasks_sender: Sender<Box<dyn Task + Send>>,
 }
@@ -40,11 +41,11 @@ async fn main() -> anyhow::Result<()> {
 
     let config = Config::new();
 
-    if !sqlx::Sqlite::database_exists(&config.database_url).await? {
-        sqlx::Sqlite::create_database(&config.database_url).await?;
-    }
+    // if !sqlx::Sqlite::database_exists(&config.database_url).await? {
+    //     sqlx::Sqlite::create_database(&config.database_url).await?;
+    // }
 
-    let pool = SqlitePool::connect(&config.database_url).await?;
+    let pool = PgPool::connect(&config.database_url).await?;
 
     MIGRATOR.run(&pool).await?;
 
@@ -86,6 +87,7 @@ async fn main() -> anyhow::Result<()> {
             "/trips/:trip_id",
             put(routes::update_trip).get(routes::get_trip_details),
         )
+        .route("/", get(routes::ready))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state);

@@ -7,6 +7,7 @@ on:
 
 jobs:
   build-and-push:
+    if: ${{ github.event.head_commit.message != "Update tag in values for helm" }}
     name: "Build and Push"
     runs-on: ubuntu-latest
 
@@ -37,3 +38,15 @@ jobs:
       #     tags: |
       #       ${{ secrets.DOCKERHUB_USERNAME }}/api-journey:${{ steps.generate_sha.outputs.sha }}
       #       ${{ secrets.DOCKERHUB_USERNAME }}/api-journey:latest
+
+      - name: Update image helm
+        uses: fjogeleit/yaml-update-action@main
+        with:
+          branch: release
+          targetBranch: master
+          createPR: true
+          valueFile: "deploy/values.yaml"
+          propertyPath: "image.tag"
+          value: ${{ steps.generate_sha.outputs.sha }}
+          commitChanges: true
+          message: "[skip ci] ci: Update tag in values for helm"

@@ -18,7 +18,7 @@ pub struct ResponseBody {
 
 #[allow(dead_code)]
 struct Trip {
-    id: String,
+    id: Uuid,
     destination: String,
     starts_at: NaiveDateTime,
     ends_at: NaiveDateTime,
@@ -31,16 +31,16 @@ pub async fn confirm_participant(
     state: State<AppState>,
     participant_id: Path<Uuid>,
 ) -> Result<Redirect, AppError> {
-    let participant_id = participant_id.to_string();
+    // let participant_id = participant_id.to_string();
 
     let participant = query_as!(
         Participant,
         r#"
         SELECT id, name, email, is_confirmed, is_owner, trip_id
         FROM participants
-        WHERE id = ?;
+        WHERE id = $1;
         "#,
-        participant_id
+        *participant_id
     )
     .fetch_optional(&*state.pool)
     .await?;
@@ -64,9 +64,9 @@ pub async fn confirm_participant(
         r#"
         UPDATE participants
         SET is_confirmed = true
-        WHERE id = ?;
+        WHERE id = $1;
         "#,
-        participant_id
+        *participant_id
     )
     .execute(&*state.pool)
     .await?;

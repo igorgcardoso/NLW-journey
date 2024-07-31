@@ -13,5 +13,5 @@ spec:
   ports:
     - name: journey-service
       port: 80
-      targetPort: 3333
+      targetPort: 8080
       protocol: TCP

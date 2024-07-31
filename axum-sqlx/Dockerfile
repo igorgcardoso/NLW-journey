@@ -14,9 +14,10 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y libssl-dev pkg-config
 
+COPY .env .
 COPY --from=builder /app/target/release/plann-er .
 COPY dev.db .
 
-EXPOSE 3333
+EXPOSE 8080
 
 CMD ["./plann-er"]

@@ -33,16 +33,16 @@ pub async fn create_activity(
 ) -> Result<Json<ResponseBody>, AppError> {
     body.validate()?;
 
-    let trip_id = trip_id.to_string();
+    // let trip_id = trip_id.to_string();
 
     let trip = query_as!(
         Trip,
         r#"
         SELECT id, destination, starts_at, ends_at, is_confirmed, created_at
         FROM trips
-        WHERE id = ?
+        WHERE id = $1;
         "#,
-        trip_id,
+        *trip_id,
     )
     .fetch_optional(&*state.pool)
     .await?;
@@ -57,21 +57,20 @@ pub async fn create_activity(
         return Err(AppError::BadRequest("Invalid activity date".to_string()));
     }
 
-    let activity_id = Uuid::new_v4();
-    let activity_id_str = activity_id.to_string();
-
-    query!(
+    let activity_id = query!(
         r#"
-        INSERT INTO activities (id, trip_id, title, occurs_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO activities (trip_id, title, occurs_at)
+        VALUES ($1, $2, $3)
+        RETURNING id
         "#,
-        activity_id_str,
-        trip_id,
+        *trip_id,
         body.title,
         body.occurs_at,
     )
-    .execute(&*state.pool)
+    .fetch_one(&*state.pool)
     .await?;
 
-    Ok(Json(ResponseBody { activity_id }))
+    Ok(Json(ResponseBody {
+        activity_id: activity_id.id,
+    }))
 }

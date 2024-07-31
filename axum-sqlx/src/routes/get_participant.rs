@@ -20,16 +20,16 @@ pub async fn get_participant(
     state: State<AppState>,
     participant_id: Path<Uuid>,
 ) -> Result<Json<ResponseBody>, AppError> {
-    let participant_id = participant_id.to_string();
+    // let participant_id = participant_id.to_string();
 
     let participant = query_as!(
         Participant,
         r#"
         SELECT id, name, email, is_confirmed
         FROM participants
-        WHERE id = ?
+        WHERE id = $1
         "#,
-        participant_id,
+        *participant_id,
     )
     .fetch_optional(&*state.pool)
     .await?;

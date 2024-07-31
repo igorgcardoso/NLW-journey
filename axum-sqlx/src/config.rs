@@ -15,7 +15,7 @@ impl Config {
             api_base_url: std::env::var("API_BASE_URL").expect("API_BASE_URL is required"),
             web_base_url: std::env::var("WEB_BASE_URL").expect("WEB_BASE_URL is required"),
             port: std::env::var("PORT")
-                .unwrap_or("3333".to_string())
+                .unwrap_or("8080".to_string())
                 .parse()
                 .expect("PORT must be a number"),
         }

@@ -33,16 +33,16 @@ pub async fn create_link(
 ) -> Result<Json<ResponseBody>, AppError> {
     body.validate()?;
 
-    let trip_id = trip_id.to_string();
+    // let trip_id = trip_id.to_string();
 
     let trip = query_as!(
         Trip,
         r#"
         SELECT id, destination, starts_at, ends_at, is_confirmed, created_at
         FROM trips
-        WHERE id = ?
+        WHERE id = $1;
         "#,
-        trip_id,
+        *trip_id,
     )
     .fetch_optional(&*state.pool)
     .await?;
@@ -51,21 +51,21 @@ pub async fn create_link(
         return Err(AppError::BadRequest("Trip not found".to_string()));
     }
 
-    let link_id = Uuid::new_v4();
-    let link_id_str = link_id.to_string();
+    // let link_id = Uuid::new_v4();
+    // let link_id_str = link_id.to_string();
 
-    query!(
+    let link = query!(
         r#"
-        INSERT INTO links (id, trip_id, title, url)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO links (trip_id, title, url)
+        VALUES ($1, $2, $3)
+        RETURNING id;
         "#,
-        link_id_str,
-        trip_id,
+        *trip_id,
         body.title,
         body.url,
     )
-    .execute(&*state.pool)
+    .fetch_one(&*state.pool)
     .await?;
 
-    Ok(Json(ResponseBody { link_id }))
+    Ok(Json(ResponseBody { link_id: link.id }))
 }

@@ -31,16 +31,16 @@ pub async fn get_trip_details(
     state: State<AppState>,
     trip_id: Path<Uuid>,
 ) -> Result<Json<ResponseBody>, AppError> {
-    let trip_id = trip_id.to_string();
+    // let trip_id = trip_id.to_string();
 
     let trip = query_as!(
         Trip,
         r#"
         SELECT id, destination, starts_at, ends_at, is_confirmed
         FROM trips
-        WHERE id = ?
+        WHERE id = $1
         "#,
-        trip_id,
+        *trip_id,
     )
     .fetch_optional(&*state.pool)
     .await?;

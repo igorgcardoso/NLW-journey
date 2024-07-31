@@ -33,16 +33,16 @@ pub async fn create_invite(
 ) -> Result<Json<ResponseBody>, AppError> {
     body.validate()?;
 
-    let trip_id = trip_id.to_string();
+    // let trip_id = trip_id.to_string();
 
     let trip = query_as!(
         Trip,
         r#"
         SELECT id, destination, starts_at, ends_at, is_confirmed, created_at
         FROM trips
-        WHERE id = ?
+        WHERE id = $1;
         "#,
-        trip_id,
+        *trip_id,
     )
     .fetch_optional(&*state.pool)
     .await?;
@@ -53,19 +53,19 @@ pub async fn create_invite(
 
     let trip = trip.unwrap();
 
-    let participant_id = Uuid::new_v4();
-    let participant_id_str = participant_id.to_string();
+    // let participant_id = Uuid::new_v4();
+    // let participant_id_str = participant_id.to_string();
 
-    query!(
+    let participant = query!(
         r#"
-        INSERT INTO participants (id, email, trip_id)
-        VALUES (?, ?, ?)
+        INSERT INTO participants (email, trip_id)
+        VALUES ($1, $2)
+        RETURNING id;
         "#,
-        participant_id_str,
         body.email,
-        trip_id,
+        *trip_id,
     )
-    .execute(&*state.pool)
+    .fetch_one(&*state.pool)
     .await?;
 
     let formatted_starts_date = trip
@@ -100,11 +100,13 @@ pub async fn create_invite(
                       <p></p>
                       <p>Caso você não saiba do que se trata esse e-mail, apenas ignore esse e-mail.</p>
                     </div>
-                "#, &trip.destination, formatted_starts_date, formatted_ends_date, format!("{}/participants/{}", state.config.api_base_url, &participant_id)).trim().to_string(),
+                "#, &trip.destination, formatted_starts_date, formatted_ends_date, format!("{}/participants/{}", state.config.api_base_url, participant.id)).trim().to_string(),
             ))).unwrap();
     state
         .tasks_sender
         .send(Box::new(tasks::SendMailTask::new(mail)))?;
 
-    Ok(Json(ResponseBody { participant_id }))
+    Ok(Json(ResponseBody {
+        participant_id: participant.id,
+    }))
 }
